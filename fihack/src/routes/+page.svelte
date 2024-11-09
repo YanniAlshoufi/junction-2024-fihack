@@ -25,9 +25,59 @@
 		}).addTo(map);
 	});
 
+	async function getBuildingFootprint() {
+		// Fetch coordinates from the address
+		const [latitude, longitude] = await getCoordsFromAddress(address);
+
+		// Define a small bounding box around the coordinates
+		const minLon = longitude - 1;
+		const minLat = latitude - 1;
+		const maxLon = longitude + 1;
+		const maxLat = latitude + 1;
+
+		// Ensure the bounding box is defined correctly
+		if (minLon >= maxLon || minLat >= maxLat) {
+			console.error('Invalid bounding box values:', { minLon, minLat, maxLon, maxLat });
+			return; // Exit if the bounding box is invalid
+		}
+
+		const bbox = `${minLon},${minLat},${maxLon},${maxLat}`; // Correctly defined bbox
+
+		// Construct the Overpass API URL with the bounding box
+		const overpassUrl = `https://overpass-api.de/api/interpreter?data=[out:json];(node["building"](around:20,${latitude},${longitude});way["building"](around:20,${latitude},${longitude});relation["building"](around:20,${latitude},${longitude}););out body;`;
+
+		try {
+			// Fetch building footprint data from Overpass API
+			const response = await fetch(overpassUrl);
+			const data = await response.json();
+			console.log('Overpass API Response:', data); // Log the entire response
+
+			// Fetch all Overpass API responses simultaneously
+			const fetchPromises = data.elements[0].nodes.map(async (node) => {
+				const overpassUrl1 = `https://overpass-api.de/api/interpreter?data=[out:json];(node(${node});way(${node});relation(${node}););out body;`;
+				const overpassResponse = await fetch(overpassUrl1);
+				return overpassResponse.json(); 
+			});
+
+			// Wait for all promises to resolve
+			const overpassDataArray = await Promise.all(fetchPromises);
+			const latlongs: L.LatLngExpression[] | any[][] = [];
+		
+			overpassDataArray.forEach(overpassData => {
+				latlongs.push([overpassData.elements[0].lat, overpassData.elements[0].lon])
+			});
+
+			
+			var polygon = L.polygon(latlongs, {color: 'red'}).addTo(map!);
+
+		} catch (error) {
+			console.error('Error fetching building footprint:', error);
+		}
+	}
+
 	async function onSubmit(e: Event) {
 		e.preventDefault();
-
+		await getBuildingFootprint();
 		if (
 			address === undefined ||
 			timeInMinutes === undefined ||
@@ -86,7 +136,7 @@
 	}
 
 	async function getCoordsFromAddress(address: string): Promise<[number, number]> {
-		const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(address)}&format=json`;
+		const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(address)}&format=json&addressdetails=1&limit=1&polygon_svg=1`;
 
 		let latitude = -1;
 		let longitude = -1;
@@ -99,6 +149,12 @@
 				latitude = data[0].lat;
 				longitude = data[0].lon;
 				errorStr = '';
+
+				// New: Get osm_id and place_id
+				const osmId = data[0].osm_id;
+				const placeId = data[0].place_id;
+		
+
 			} else {
 				errorStr = 'Address not found!';
 			}
@@ -109,6 +165,11 @@
 
 		return [latitude, longitude];
 	}
+
+
+
+
+
 </script>
 
 <div class="container">
