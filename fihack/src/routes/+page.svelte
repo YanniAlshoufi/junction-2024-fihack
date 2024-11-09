@@ -567,9 +567,9 @@
 			// });
 		
 			
-			var imageOverlay = L.imageOverlay('/src/screenshot_nobg.png', L.latLngBounds(latlongs)).addTo(map!);
+			var imageOverlay = L.imageOverlay('/src/shotwithheat.png', L.latLngBounds(latlongs)).addTo(map!);
 	
-			map!.setView([latitude, longitude], 30);
+			//map!.setView([latitude, longitude], 30);
 			//var polygon = L.polygon(latlongs, {color: 'red'}).addTo(map!);
 
 		} catch (error) {
