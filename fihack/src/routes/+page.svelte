@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { CURRENCIES, type Currency, type GetMoneyResponse } from '$lib/models';
-	import L from 'leaflet';
+	import L, { type LatLngExpression, type LatLngLiteral } from 'leaflet';
 
 	let address: string = $state('');
 	let timeInMinutes: number | undefined = $state();
@@ -528,20 +528,6 @@
 		// Fetch coordinates from the address
 		const [latitude, longitude] = await getCoordsFromAddress(address);
 
-		// Define a small bounding box around the coordinates
-		const minLon = longitude - 1;
-		const minLat = latitude - 1;
-		const maxLon = longitude + 1;
-		const maxLat = latitude + 1;
-
-		// Ensure the bounding box is defined correctly
-		if (minLon >= maxLon || minLat >= maxLat) {
-			console.error('Invalid bounding box values:', { minLon, minLat, maxLon, maxLat });
-			return; // Exit if the bounding box is invalid
-		}
-
-		const bbox = `${minLon},${minLat},${maxLon},${maxLat}`; // Correctly defined bbox
-
 		// Construct the Overpass API URL with the bounding box
 		const overpassUrl = `https://overpass-api.de/api/interpreter?data=[out:json];(node["building"](around:20,${latitude},${longitude});way["building"](around:20,${latitude},${longitude});relation["building"](around:20,${latitude},${longitude}););out body;`;
 
@@ -567,15 +553,29 @@
 			// });
 		
 			
-			var imageOverlay = L.imageOverlay('/src/shotwithheat.png', L.latLngBounds(latlongs)).addTo(map!);
-	
-			//map!.setView([latitude, longitude], 30);
+			L.imageOverlay('/src/shotwithheat.png', L.latLngBounds(latlongs)).addTo(map!);
+			const markerBounds = L.latLngBounds([{lat: latitude, lng: longitude} as LatLngLiteral]);
+			
+			// Set the marker position and add it to the map
+			if (marker) {
+				marker.setLatLng([latitude, longitude - 0.00072]);
+			} else {
+				marker = L.marker([latitude, longitude])
+					.addTo(map!)
+					.bindPopup('Location: ' + address)
+					.openPopup();
+			}
+
+			// Center the map to the marker after it has been added
+			map!.fitBounds(markerBounds);
+			//map!.setView([latitude, longitude - 0.00072], 17, {easeLinearity: 3});
 			//var polygon = L.polygon(latlongs, {color: 'red'}).addTo(map!);
 
 		} catch (error) {
 			console.error('Error fetching building footprint:', error);
 		}
 	}
+
 
 	async function onSubmit(e: Event) {
 		e.preventDefault();
@@ -602,10 +602,10 @@
 			return;
 		}
 
-		const [latitude, longitude] = await getCoordsFromAddress(address);
-
-		map!.setView([latitude, longitude], 13);
-
+		let [latitude, longitude] = await getCoordsFromAddress(address);
+		//map!.setView([latitude, longitude], 13);
+		//	latitude = data[0].lat - 0.00038;	
+		//longitude = data[0].lon - 0.00072;
 		if (marker) {
 			marker.setLatLng([latitude, longitude]);
 		} else {
@@ -648,14 +648,16 @@
 			const data = await response.json();
 
 			if (data && data.length > 0) {
-				latitude = data[0].lat;
-				longitude = data[0].lon;
+				//latitude = data[0].lat;
+				//longitude = data[0].lon;
+
+				//demo purposes
+				latitude = 60.161943879348534;
+				longitude = 24.904281711019397
+
+				
 				errorStr = '';
 
-				// New: Get osm_id and place_id
-				const osmId = data[0].osm_id;
-				const placeId = data[0].place_id;
-		
 
 			} else {
 				errorStr = 'Address not found!';
