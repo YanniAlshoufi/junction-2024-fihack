@@ -61,14 +61,14 @@
 
 			// Wait for all promises to resolve
 			const overpassDataArray = await Promise.all(fetchPromises);
-			const latlongs: L.LatLngExpression[] | any[][] = [];
+			const latlongs: L.LatLngExpression[] = [];
 		
 			overpassDataArray.forEach(overpassData => {
-				latlongs.push([overpassData.elements[0].lat, overpassData.elements[0].lon])
+				latlongs.push([overpassData.elements[0].lat, overpassData.elements[0].lon] as L.LatLngTuple);
 			});
 
-			
-			var polygon = L.polygon(latlongs, {color: 'red'}).addTo(map!);
+			var imageOverlay = L.imageOverlay('/src/screenshot_nobg.png', L.latLngBounds(latlongs)).addTo(map!);
+			//var polygon = L.polygon(latlongs, {color: 'red'}).addTo(map!);
 
 		} catch (error) {
 			console.error('Error fetching building footprint:', error);
