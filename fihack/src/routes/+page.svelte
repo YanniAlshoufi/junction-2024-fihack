@@ -515,6 +515,8 @@
     ]
 ];
 
+	let classDiv = $state("");
+
 	onMount(() => {
 		map = L.map('map').setView([60.16207181470773, 24.904457261711535], 13);
 
@@ -522,7 +524,26 @@
 			attribution:
 				'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
 		}).addTo(map);
-	});
+
+			let canScroll = true;
+
+			function onScroll() {
+			
+				if (window.scrollY > 0) {
+					if (!canScroll) { return; }
+						classDiv = "header-mode";
+						canScroll = false;
+						setTimeout(() => {
+						canScroll = true;
+						}, 100);
+				} 
+				else {
+					classDiv = "";
+				}
+			}
+
+			window.addEventListener("scroll", onScroll);
+		});
 
 	async function getBuildingFootprint() {
 		// Fetch coordinates from the address
@@ -676,6 +697,9 @@
 
 </script>
 
+<div class="{classDiv}">
+	<h1>RenovHeat</h1>
+</div>
 <div class="container">
 	<article>
 		<form onsubmit={onSubmit}>
@@ -768,12 +792,29 @@
 {/if}
 
 <style>
+
+	.upper-container {
+		height: 100dvh;
+		background: #EFEFEF;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		transition: height ease-in 0.3s;
+	}
 	.container {
+		height: 1000px;
+		background-color: lightcoral;
+		padding-top: 20px; 
 		display: grid;
 		grid-template-columns: 1fr 1fr;
 		gap: 2rem;
 		max-width: 1200px;
-		margin: 2rem auto;
+	}
+
+	.header-mode {
+  		height: 50px;
+		position: sticky;
+		top: 0;
 	}
 
 	#map {
